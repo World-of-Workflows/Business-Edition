@@ -3,7 +3,7 @@
 # Define the application parameters
 Write-Host "World of Workflows Business Edition Configuration Tool"
 Write-Host "Connecting to MS Graph"
-Connect-MgGraph -ContextScope Process -ForceRefresh -Scopes @("User.Read.All","Application.ReadWrite.All" )
+Connect-MgGraph -ContextScope Process -Scopes @("User.Read.All","Application.ReadWrite.All" )
 Write-Host "Creating Client Application in AAD"
 $ClientappName = Read-Host 'Enter the Client Application Name [World of Workflows Client]'
 if([string]::IsNullOrWhiteSpace($ClientappName))
@@ -1136,15 +1136,17 @@ $settings = @{
         }
     }
     "Plugins"=@{
-        "PluginLocation"="./plugins"
-        "UntrustedPluginLocation"="./plugins-untrusted"
-        "PEDBFolder"="./pedb"
-        "CertificatePath"="./WorldOfWorkflows.cer"
+		"CertificatePath"= "./WorldOfWorkflows.cer"
+		"PluginLocation"="/data/plugins"
+		"PEDBFolder"="/data/pedb"
+		"UntrustedPluginLocation"="/data/plugins-untrusted"
+		"UpgradedPluginLocation"="/data/plugins-upgraded"
+		"PluginConfigurationFile"="/data/PluginConfiguration.json"
     }
     "ConnectionStrings"=@{
-        "H1WFSQlite"="Data Source=./worldofworkflows.db;Cache=Shared;"
+        "H1WFSQlite"="Data Source=/data/worldofworkflows.db;Cache=Shared;"
         "H1SQL"="Server=.;Database=WorldOfWorkflows;Trusted_Connection=True;Encrypt=False;"
-        "Sqlite"="Data Source=./worldofworkflows.db;Cache=Shared;"
+        "Sqlite"="Data Source=/data/worldofworkflows.db;Cache=Shared;"
     }
     "AllowedHosts"="*"
     "ConnectionType"="SQLite"
@@ -1209,7 +1211,7 @@ $settings = @{
 		}
 		"Retention"=@{
 			"SweepInterval"="1:00:00:00"
-			"TimeToLive"="30:00:00:00"
+			"TimeToLive"="1:00:00:00"
 			"BatchSize"="10"
 		}
 		"Server"=@{
