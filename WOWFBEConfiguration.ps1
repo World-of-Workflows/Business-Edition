@@ -1141,7 +1141,12 @@ $settings = @{
 		"PEDBFolder"="/data/pedb"
 		"UntrustedPluginLocation"="/data/plugins-untrusted"
 		"UpgradedPluginLocation"="/data/plugins-upgraded"
-		"PluginConfigurationFile"="/data/PluginConfiguration.json"
+		"InstalledPluginLocation"= "/data/Plugins/Installed"
+		"EnabledPluginLocation"= "/data/Plugins/Enabled"
+		"TemporaryPluginLocation"= "/data/Plugins/Temp"
+		"PluginConfigurationFile"= "/data/Plugins/PluginConfiguration.json"
+		"CommunityCertificateFolder"= "/data/Plugins/Community-Certificates"
+
     }
     "ConnectionStrings"=@{
         "H1WFSQlite"="Data Source=/data/worldofworkflows.db;Cache=Shared;"
