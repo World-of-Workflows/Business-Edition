@@ -21,7 +21,7 @@ Welcome to the World of Workflows Business Edition Installation Instructions. Yo
 6. Enter the Base URL of your Installation or press Enter for defaults
 7. The Script will create the appropriate settings
 8. Go back to the browser in Item 1
-9. Choose **App registrations** from the left menu
+9. Choose **App registrations** from the left menu, or search for **App Registrations** from within **All Services**
 10. Click **All applications** and click World of Workflows Server (or whatever you entered in step 5)
 11. Click **API Permissions** from the left menu
 12. Click **+ Add a permission**
