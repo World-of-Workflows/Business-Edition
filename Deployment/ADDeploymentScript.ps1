@@ -578,7 +578,7 @@ $PreauthApplication = @{
 
 Update-AzAdApplication -ObjectId $ServerApp.Id -Api @{ PreAuthorizedApplication = @($PreauthApplication)}
 
-$org = get-AzAdOganization
+$org = get-AzAdOrganization
 
 
 $DeploymentScriptOutputs = @{}
