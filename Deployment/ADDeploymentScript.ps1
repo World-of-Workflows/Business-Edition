@@ -18,40 +18,7 @@ $redirectUris = @(
    "$($BaseAddress)/swagger/oauth-redirect.html"
 )
 
-$ClientApp = New-MgApplication -DisplayName $ClientappName -Spa @{ RedirectUris = $redirectUris } -SignInAudience "AzureADMyOrg"
-
-# Get the Microsoft Graph service principal
-$graphSp = Get-MgServicePrincipal -Filter "displayName eq 'Microsoft Graph'"
-
-# Get the IDs for the application roles
-$userReadId = $graphSp.Oauth2PermissionScopes| Where-Object { $_.Value -eq 'User.Read' } | Select-Object -ExpandProperty Id
-$userReadAllId = $graphSp.Oauth2PermissionScopes | Where-Object { $_.Value -eq 'User.ReadBasic.All' } | Select-Object -ExpandProperty Id
+# Assuming $ClientappName and $redirectUris are predefined
+$ClientApp = New-AzADApplication -DisplayName $ClientappName -ReplyUrls $redirectUris -AvailableToOtherTenants $false -Oauth2AllowImplicitFlow $true
 
 
-# Define the required permissions (User.Read and User.ReadBasic.All)
-$requiredPermissions = @(
-    # User.Read
-    @{
-        "ResourceAppId" = "00000003-0000-0000-c000-000000000000"
-        "ResourceAccess" = @(
-            @{
-                "Id" = $userReadId 
-                "Type" = "Scope"
-            }
-        )
-    }
-)
-
-# Add the required permissions to the application
-Update-MgApplication -ApplicationId $ClientApp.Id -RequiredResourceAccess $requiredPermissions
-$TenantId = (Get-MgOrganization).Id
-$ClientClientId = $ClientApp.AppId
-$ServerApp = New-MgApplication -DisplayName $ServerappName -SignInAudience "AzureADMyOrg"
-
-# Define the client secret parameters
-$passwordCred = @{
-    displayName = "Automated Secret"
-    endDateTime = (Get-Date).AddYears(1)
-}
-# Create the client secret
-$ServerClientSecret = Add-MgApplicationPassword -ApplicationId $ServerApp.Id -PasswordCredential $passwordCred
