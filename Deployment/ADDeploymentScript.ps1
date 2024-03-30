@@ -578,14 +578,13 @@ $PreauthApplication = @{
 
 Update-AzAdApplication -ObjectId $ServerApp.Id -Api @{ PreAuthorizedApplication = @($PreauthApplication)}
 
-$org = get-AzAdOrganization
+
 
 
 $DeploymentScriptOutputs = @{}
 $DeploymentScriptOutputs['ClientClientId'] = $ClientApp.AppId
 $DeploymentScriptOutputs['ServerClientId'] = $ServerApp.AppId
 $DeploymentScriptOutputs['ServerSecret'] = $ServerSecret.SecretText
-$DeploymentScriptOutputs['TenantId'] = $org.Id
 
 
 
