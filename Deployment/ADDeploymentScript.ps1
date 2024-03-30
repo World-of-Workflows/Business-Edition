@@ -9,7 +9,7 @@ param(
 # Setup Variables
 
 $ClientClientId = "5b4d46db-91cb-4b8f-8d72-24c77cf1745f"
-$ServerClientSecret = "-Vx8Q~MTEp5ER7g2oHyxcF-wjWUp3biPam2MebmV"
+$ServerClientSecret = "SECRET"
 $ServerClientId = "a3243665-fc94-47d0-9f6a-5c300ff246d"
 $TenantId = "d15db61c-9b7a-472e-8f75-b38630bb554c"
 
