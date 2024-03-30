@@ -21,9 +21,7 @@ $redirectUris = @(
 # Assuming $ClientappName and $redirectUris are predefined
 $ClientApp = New-AzADApplication -DisplayName $ClientappName -SPARedirectUri $redirectUris -AvailableToOtherTenants $false
 
-Connect-AzureAd
-
-$graphSp=Get-AzureADServicePrincipal -Filter "displayName eq 'Microsoft Graph'"
+$graphSp=Get-AzADServicePrincipal -Filter "displayName eq 'Microsoft Graph'"
 $userReadId = $graphSp.Oauth2Permissions| Where-Object { $_.Value -eq 'User.Read' } | Select-Object -ExpandProperty Id
 $userReadAllId = $graphSp.Oauth2Permissions | Where-Object { $_.Value -eq 'User.ReadBasic.All' } | Select-Object -ExpandProperty Id
 
