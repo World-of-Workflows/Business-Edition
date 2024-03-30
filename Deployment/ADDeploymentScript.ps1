@@ -2,7 +2,7 @@ param(
 	[Parameter(Mandatory)]
 	[string] $ClientappName, 
 	[Parameter(Mandatory)]
-	[string] $ServerappName),
+	[string] $ServerappName,
 	[Paramter(Mandatory)]
 	[string] $BaseAddress
 )
