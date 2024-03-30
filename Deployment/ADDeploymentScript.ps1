@@ -44,3 +44,14 @@ $requiredPermissions = @(
 
 # Add the required permissions to the application
 Update-MgApplication -ApplicationId $ClientApp.Id -RequiredResourceAccess $requiredPermissions
+$TenantId = (Get-MgOrganization).Id
+$ClientClientId = $ClientApp.AppId
+$ServerApp = New-MgApplication -DisplayName $ServerappName -SignInAudience "AzureADMyOrg"
+
+# Define the client secret parameters
+$passwordCred = @{
+    displayName = "Automated Secret"
+    endDateTime = (Get-Date).AddYears(1)
+}
+# Create the client secret
+$ServerClientSecret = Add-MgApplicationPassword -ApplicationId $ServerApp.Id -PasswordCredential $passwordCred
