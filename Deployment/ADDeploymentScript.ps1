@@ -576,7 +576,7 @@ $PreauthApplication = @{
     DelegatedPermissionIds = @($scope1Id, $scope2Id, $scope3Id, $scope4Id, $scope5Id, $scope6Id, $scope7Id, $scope8Id, $scope9Id, $scope10Id, $scope11Id, $scope12Id, $scope13Id, $scope14Id, $scope15Id, $scope16Id, $scope17Id, $scope18Id, $scope19Id, $scope20Id, $scope21Id, $scope22Id, $scope23Id, $scope24Id, $scope25Id, $scope26Id, $scope27Id, $scope28Id, $scope29Id, $scope30Id, $scope31Id, $scope32Id, $scope33Id, $scope34Id, $scope35Id, $scope36Id, $scope37Id, $scope38Id, $scope39Id, $scope40Id, $scope41Id, $scope42Id, $scope43Id, $scope44Id, $scope45Id, $scope46Id, $scope47Id, $scope48Id, $scope49Id, $scope50Id, $scope51Id, $scope52Id, $scope53Id, $scope54Id, $scope55Id, $scope56Id, $scope57Id)
 }
 
-Update-AzAdpplication -ObjectId $ServerApp.Id -Api @{ PreAuthorizedApplication = @($PreauthApplication)}
+Update-AzAdApplication -ObjectId $ServerApp.Id -Api @{ PreAuthorizedApplication = @($PreauthApplication)}
 
 $org = get-AzAdOganization
 
