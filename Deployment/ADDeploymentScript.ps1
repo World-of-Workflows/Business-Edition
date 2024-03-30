@@ -3,7 +3,7 @@ param(
 	[string] $ClientappName, 
 	[Parameter(Mandatory)]
 	[string] $ServerappName,
-	[Paramter(Mandatory)]
+	[Parameter(Mandatory)]
 	[string] $BaseAddress
 )
 # Setup Variables
