@@ -19,7 +19,7 @@ $redirectUris = @(
 )
 
 # Assuming $ClientappName and $redirectUris are predefined
-$ClientApp = New-AzADApplication -DisplayName $ClientappName -ReplyUrls $redirectUris -AvailableToOtherTenants $false
+$ClientApp = New-AzADApplication -DisplayName $ClientappName -SPARedirectUri $redirectUris -AvailableToOtherTenants $false
 
 $DeploymentScriptOutputs = @{}
 $DeploymentScriptOutputs['ClientClientId'] = $ClientApp.AppId
