@@ -54,8 +54,7 @@ $requiredPermissions = @(
 Update-AzAdApplication -ObjectId $ClientApp.Id -RequiredResourceAccess $requiredPermissions
 
 $ServerApp = New-AzAdApplication -DisplayName $ServerappName -SignInAudience "AzureADMyOrg"
-$ServerSecret = New-AzureAdApplicationPasswordCreden
-tial -ObjectId $ServerApp.Id -CustomKeyIdentifier PrimarySecret -EndDate ((Get-Date).AddMonths(12))
+$ServerSecret = New-AzAdAppCredential -ObjectId $ServerApp.Id -CustomKeyIdentifier PrimarySecret -EndDate ((Get-Date).AddMonths(12))
 
 
 $DeploymentScriptOutputs = @{}
