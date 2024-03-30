@@ -51,7 +51,7 @@ $requiredPermissions = @(
         )
     }
 )
-Update-AzAdApplication -ApplicationId $ClientApp.Id -RequiredResourceAccess $requiredPermissions
+Update-AzAdApplication -ObjectId $ClientApp.Id -RequiredResourceAccess $requiredPermissions
 
 $ServerApp = New-AzAdApplication -DisplayName $ServerappName -SignInAudience "AzureADMyOrg"
 $ServerSecret = New-AzureAdApplicationPasswordCreden
