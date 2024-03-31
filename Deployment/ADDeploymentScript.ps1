@@ -588,6 +588,6 @@ $DeploymentScriptOutputs['ClientClientId'] = $ClientApp.AppId
 $DeploymentScriptOutputs['ServerClientId'] = $ServerApp.AppId
 $DeploymentScriptOutputs['ServerSecret'] = $ServerSecret.SecretText
 $DeploymentScriptOutputs['TenantId'] = $TenantId
-$DeomplymentScriptOutputs['TenantDomain']= $domains.domains[0]
+$DeploymentScriptOutputs['TenantDomain']= $domains.domains[0]
 
 
