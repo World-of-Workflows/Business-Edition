@@ -27,6 +27,15 @@ $graphSp=Get-AzADServicePrincipal -Filter "displayName eq 'Microsoft Graph'"
 $userReadId = $graphSp.Oauth2PermissionScope | Where-Object { $_.Value -eq 'User.Read' } | Select-Object -ExpandProperty Id
 $userReadAllId = $graphSp.Oauth2PermissionScope | Where-Object { $_.Value -eq 'User.ReadBasic.All' } | Select-Object -ExpandProperty Id
 
+
+
+$ServerApp = New-AzAdApplication -DisplayName $ServerappName -SignInAudience "AzureADMyOrg"
+ $ServerSecret = New-AzADAppCredential -ObjectId $ServerApp.Id -EndDate ((Get-Date).AddMonths(12)) 
+
+# Now Creating Identifier URLs
+ $identifierUris = @(
+    "api://" + $ServerApp.AppId
+)
 $requiredPermissions = @(
     # User.Read
     @{
@@ -39,8 +48,8 @@ $requiredPermissions = @(
         )
     }
 )
-Update-AzAdApplication -ObjectId $ClientApp.Id -RequiredResourceAccess $requiredPermissions
-
+Update-AzAdApplication -ObjectId $ServerApp.Id -RequiredResourceAccess $requiredPermissions
+                                          
 $requiredPermissions = @(
     # User.Read
     @{
@@ -53,16 +62,7 @@ $requiredPermissions = @(
         )
     }
 )
-Update-AzAdApplication -ObjectId $ClientApp.Id -RequiredResourceAccess $requiredPermissions
-
-$ServerApp = New-AzAdApplication -DisplayName $ServerappName -SignInAudience "AzureADMyOrg"
- $ServerSecret = New-AzADAppCredential -ObjectId $ServerApp.Id -EndDate ((Get-Date).AddMonths(12)) 
-
-# Now Creating Identifier URLs
- $identifierUris = @(
-    "api://" + $ServerApp.AppId
-)
-
+Update-AzAdApplication -ObjectId $ServerApp.Id -RequiredResourceAccess $requiredPermissions
 
 # Set the identifier URIs for the application
 Update-AzAdApplication -ObjectId $ServerApp.Id -IdentifierUri $identifierUris  
