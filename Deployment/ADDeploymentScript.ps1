@@ -10,9 +10,6 @@ param(
 )
 # Setup Variables
 
-$ClientClientId = "5b4d46db-91cb-4b8f-8d72-24c77cf1745f"
-$ServerClientSecret = "SECRET"
-$ServerClientId = "a3243665-fc94-47d0-9f6a-5c300ff246d"
 
 
 $redirectUris = @(
