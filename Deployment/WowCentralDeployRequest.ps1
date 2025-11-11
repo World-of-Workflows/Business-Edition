@@ -30,7 +30,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 # Hard-coded WowCentral endpoint
-$WowCentralUrl = 'https://wowcentral.azurewebsites.net/deploymentNotification'
+$WowCentralUrl = 'https://wowcentral.azurewebsites.net/deploymentRequest'
 
 Write-Host "=== Sending deployment context to WowCentral ==="
 Write-Host "Resource group:         $ResourceGroupName"
