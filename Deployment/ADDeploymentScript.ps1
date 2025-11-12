@@ -6,7 +6,10 @@ param(
 	[Parameter(Mandatory)]
 	[string] $BaseAddress,
     [Parameter(Mandatory)]
-    [string] $TenantId
+    [string] $TenantId,
+	# NEW - used to enter into Service: your user’s UPN (e.g. jim@worldofworkflows.com)
+    [Parameter(Mandatory)]
+    [string] $AdminUserPrincipalName
 )
 # Setup Variables
 
@@ -77,6 +80,16 @@ $appRole = @{
 }
 
 update-azadapplication -ObjectId $ServerApp.Id -AppRole @($appRole)
+
+# --- NEW: Ensure a service principal (enterprise app) exists for the server app ---
+$ServerSp = Get-AzADServicePrincipal -Filter "appId eq '$($ServerApp.AppId)'"
+
+if (-not $ServerSp) {
+    Write-Host "Creating service principal for server app '$ServerappName'..."
+    $ServerSp = New-AzADServicePrincipal -ApplicationId $ServerApp.AppId
+} else {
+    Write-Host "Service principal for server app '$ServerappName' already exists."
+}
 
 # Now to add the first 10 Scopes
 
@@ -579,6 +592,43 @@ Update-AzAdApplication -ObjectId $ServerApp.Id -Api @{ PreAuthorizedApplication 
 
 $domains = get-azdomain -TenantId $TenantId
 
+# --- NEW: Add the admin user as a member of the server enterprise app (Administrator role) ---
+
+Write-Host "Locating admin user '$AdminUserPrincipalName'..."
+$AdminUser = Get-AzADUser -Filter "userPrincipalName eq '$AdminUserPrincipalName'"
+
+if (-not $AdminUser) {
+    throw "Could not find user with UPN '$AdminUserPrincipalName'"
+}
+
+# The Administrator app role ID we created earlier
+$adminAppRoleId = $AdminGuid.Guid
+
+Write-Host "Ensuring admin user is assigned to server app with Administrator role..."
+# Get token for Microsoft Graph
+$token = (Get-AzAccessToken -ResourceUrl "https://graph.microsoft.com").Token
+
+$headers = @{
+    "Authorization" = "Bearer $token"
+    "Content-Type"  = "application/json"
+}
+
+# Graph appRoleAssignment payload: assign user -> server SP -> Administrator app role
+$assignmentBody = @{
+    principalId = $AdminUser.Id       # user ID
+    resourceId  = $ServerSp.Id        # service principal (enterprise app) ID
+    appRoleId   = $adminAppRoleId     # Administrator role ID
+} | ConvertTo-Json
+
+$assignUrl = "https://graph.microsoft.com/v1.0/users/$($AdminUser.Id)/appRoleAssignments"
+
+try {
+    Invoke-RestMethod -Uri $assignUrl -Method Post -Headers $headers -Body $assignmentBody
+    Write-Host "Admin user '$AdminUserPrincipalName' assigned to server app '$ServerappName' with Administrator role."
+}
+catch {
+    Write-Warning "Failed to assign admin user to server app: $($_.Exception.Message)"
+}
 
 $DeploymentScriptOutputs = @{}
 $DeploymentScriptOutputs['ClientClientId'] = $ClientApp.AppId
