@@ -32,6 +32,11 @@ param(
     
     [Parameter(Mandatory = $true)]
     [string]$BillingEmailForWoWLicence
+
+    [Parameter(Mandatory = $false)]
+    [string]$AdminUserPrincipalName
+
+    
 )
 
 $ErrorActionPreference = 'Stop'
@@ -85,6 +90,7 @@ $payload = @{
     storageAccountName  = $StorageAccountName
     companyNameForWoWLicence = $CompanyNameForWoWLicence
     billingEmailForWoWLicence = $BillingEmailForWoWLicence
+    adminUserPrincipalName = =$AdminUserPrincipalName
 }
 
 $body = $payload | ConvertTo-Json -Depth 6
