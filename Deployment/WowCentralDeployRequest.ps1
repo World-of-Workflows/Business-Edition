@@ -24,7 +24,14 @@ param(
     [string]$ServerAppName,
 
     [Parameter(Mandatory = $true)]
-    [string]$StorageAccountName
+    [string]$StorageAccountName,
+
+     # NEW
+    [Parameter(Mandatory = $true)]
+    [string]$CompanyNameForWoWLicence,
+    
+    [Parameter(Mandatory = $true)]
+    [string]$BillingEmailForWoWLicence
 )
 
 $ErrorActionPreference = 'Stop'
@@ -76,6 +83,8 @@ $payload = @{
     clientAppName       = $ClientAppName
     serverAppName       = $ServerAppName
     storageAccountName  = $StorageAccountName
+    companyNameForWoWLicence = $CompanyNameForWoWLicence
+    billingEmailForWoWLicence = $BillingEmailForWoWLicence
 }
 
 $body = $payload | ConvertTo-Json -Depth 6
