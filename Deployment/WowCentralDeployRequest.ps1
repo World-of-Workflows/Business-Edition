@@ -56,6 +56,31 @@ Write-Host "Server App Name:       $ServerAppName"
 Write-Host "Storage Account Name:  $StorageAccountName"
 Write-Host "WowCentral URL:        $WowCentralUrl"
 
+# ----- Ensure correct subscription context -----
+Write-Host "Selecting Azure context for subscription: $SubscriptionId"
+
+try {
+    # Fast-path if the current context is already correct
+    $ctx = Get-AzContext
+    if (-not $ctx -or $ctx.Subscription.Id -ne $SubscriptionId) {
+        # This does NOT require an extra login in deployment scripts
+        Set-AzContext -SubscriptionId $SubscriptionId -ErrorAction Stop | Out-Null
+        $ctx = Get-AzContext
+    }
+
+    if ($ctx.Subscription.Id -ne $SubscriptionId) {
+        throw "Failed to set Az context to subscription $SubscriptionId. Current: $($ctx.Subscription.Id)"
+    }
+
+    Write-Host ("Azure context set. Subscription: {0} ({1})  Tenant: {2}" -f `
+        $ctx.Subscription.Name, $ctx.Subscription.Id, $ctx.Tenant.Id)
+}
+catch {
+    Write-Error "Unable to set Azure context: $($_.Exception.Message)"
+    throw
+}
+# ----------------------------------------------
+
 # Resolve subscription name
 $sub = Get-AzSubscription -SubscriptionId $SubscriptionId -ErrorAction Stop
 $subscriptionName = $sub.Name
