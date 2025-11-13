@@ -55,6 +55,9 @@ Write-Host "Client App Name:       $ClientAppName"
 Write-Host "Server App Name:       $ServerAppName"
 Write-Host "Storage Account Name:  $StorageAccountName"
 Write-Host "WowCentral URL:        $WowCentralUrl"
+Write-Host "Company Name (Licence): $CompanyNameForWoWLicence"
+Write-Host "Billing Email:          $BillingEmailForWoWLicence"
+Write-Host "Admin UPN (optional):   $AdminUserPrincipalName"
 
 # ----- Ensure correct subscription context -----
 Write-Host "Selecting Azure context for subscription: $SubscriptionId"
@@ -115,7 +118,7 @@ $payload = @{
     storageAccountName  = $StorageAccountName
     companyNameForWoWLicence = $CompanyNameForWoWLicence
     billingEmailForWoWLicence = $BillingEmailForWoWLicence
-    adminUserPrincipalName = =$AdminUserPrincipalName
+    adminUserPrincipalName = $AdminUserPrincipalName
 }
 
 $body = $payload | ConvertTo-Json -Depth 6
