@@ -31,7 +31,7 @@ param(
     [string]$CompanyNameForWoWLicence,
     
     [Parameter(Mandatory = $true)]
-    [string]$BillingEmailForWoWLicence
+    [string]$BillingEmailForWoWLicence,
 
     [Parameter(Mandatory = $false)]
     [string]$AdminUserPrincipalName
