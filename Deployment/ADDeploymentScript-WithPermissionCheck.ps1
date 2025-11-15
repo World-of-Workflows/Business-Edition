@@ -80,7 +80,7 @@ try {
     Write-Host "Your Global Administrator must grant permissions by running:" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  1. Download the permission script:" -ForegroundColor White
-    Write-Host "     https://releases.worldofworkflows.com/Grant-WoWPermissions.ps1" -ForegroundColor Gray
+    Write-Host "     https://github.com/World-of-Workflows/Business-Edition/blob/main/Deployment/Grant-WoWPermissions.ps1" -ForegroundColor Gray
     Write-Host ""
     Write-Host "  2. Run in PowerShell:" -ForegroundColor White
     Write-Host "     .\Grant-WoWPermissions.ps1 -ManagedResourceGroupName '$env:AZURE_RESOURCE_GROUP' -SiteName '$env:SITE_NAME'" -ForegroundColor Gray
