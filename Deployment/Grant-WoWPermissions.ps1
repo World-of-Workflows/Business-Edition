@@ -8,6 +8,9 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$false)]
+    [string]$SubscriptionId,
+    
+    [Parameter(Mandatory=$false)]
     [string]$ManagedResourceGroupName,
     
     [Parameter(Mandatory=$false)]
@@ -30,6 +33,60 @@ if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Authentication)) {
     Write-Host "✅ Module installed" -ForegroundColor Green
 }
 
+Write-Host ""
+Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host "Step 1: Checking Azure Login" -ForegroundColor Cyan
+Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host ""
+
+try {
+    $context = Get-AzContext
+    if (-not $context) {
+        Write-Host "⚠️  Not logged into Azure" -ForegroundColor Yellow
+        Write-Host "Please login..."
+        Connect-AzAccount
+        $context = Get-AzContext
+    }
+    Write-Host "✅ Logged in as: $($context.Account.Id)" -ForegroundColor Green
+    Write-Host "   Current Subscription: $($context.Subscription.Name)" -ForegroundColor Gray
+    Write-Host "   Tenant: $($context.Tenant.Id)" -ForegroundColor Gray
+} catch {
+    Write-Host "❌ Failed to connect to Azure" -ForegroundColor Red
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    exit 1
+}
+
+# Prompt for subscription if not provided
+if (-not $SubscriptionId) {
+    Write-Host ""
+    Write-Host "Available subscriptions:" -ForegroundColor Yellow
+    $subscriptions = Get-AzSubscription
+    for ($i = 0; $i -lt $subscriptions.Count; $i++) {
+        Write-Host "  [$i] $($subscriptions[$i].Name) ($($subscriptions[$i].Id))" -ForegroundColor Gray
+    }
+    Write-Host ""
+    
+    if ($subscriptions.Count -eq 1) {
+        $SubscriptionId = $subscriptions[0].Id
+        Write-Host "Using subscription: $($subscriptions[0].Name)" -ForegroundColor Green
+    } else {
+        $selection = Read-Host "Enter subscription number [0-$($subscriptions.Count - 1)] or press Enter for current"
+        if ($selection -eq "") {
+            $SubscriptionId = $context.Subscription.Id
+        } else {
+            $SubscriptionId = $subscriptions[[int]$selection].Id
+        }
+    }
+}
+
+# Set the subscription context
+Write-Host ""
+Write-Host "Setting subscription context..." -ForegroundColor Cyan
+Set-AzContext -SubscriptionId $SubscriptionId | Out-Null
+$context = Get-AzContext
+Write-Host "✅ Using subscription: $($context.Subscription.Name)" -ForegroundColor Green
+Write-Host ""
+
 # Prompt for parameters if not provided
 if (-not $ManagedResourceGroupName) {
     Write-Host "Please provide the Managed Resource Group name" -ForegroundColor Yellow
@@ -48,8 +105,10 @@ if (-not $SiteName) {
 
 $identityName = "$SiteName-installer-identity"
 
-Write-Host ""
+echo ""
 Write-Host "Configuration:" -ForegroundColor Cyan
+Write-Host "  Subscription: $($context.Subscription.Name)" -ForegroundColor Gray
+Write-Host "  Subscription ID: $SubscriptionId" -ForegroundColor Gray
 Write-Host "  Managed Resource Group: $ManagedResourceGroupName" -ForegroundColor Gray
 Write-Host "  Site Name: $SiteName" -ForegroundColor Gray
 Write-Host "  Identity Name: $identityName" -ForegroundColor Gray
