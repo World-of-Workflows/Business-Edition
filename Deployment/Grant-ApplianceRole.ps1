@@ -4,8 +4,8 @@
 # permission to use the managed identity during deployment
 
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$ApplianceResourceProviderId = "35cbcc06-defd-44d2-ace4-bc2bf2466970",
+    [Parameter(Mandatory=$false)]
+    [string]$ApplianceApplicationId = "35cbcc06-defd-44d2-ace4-bc2bf2466970",
     
     [Parameter(Mandatory=$false)]
     [string]$SubscriptionId,
@@ -49,16 +49,46 @@ try {
 
 Write-Host ""
 
+# Find the Appliance Resource Provider's service principal
+Write-Host "Looking up Appliance Resource Provider..." -ForegroundColor Cyan
+Write-Host "  Application ID: $ApplianceApplicationId" -ForegroundColor Gray
+
+try {
+    $sp = Get-AzADServicePrincipal -ApplicationId $ApplianceApplicationId
+    
+    if (-not $sp) {
+        Write-Host "❌ Service principal not found" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "This could mean:" -ForegroundColor Yellow
+        Write-Host "  1. The application ID is incorrect" -ForegroundColor Gray
+        Write-Host "  2. The service principal hasn't been created yet" -ForegroundColor Gray
+        Write-Host "  3. You don't have permission to view it" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "Try finding the correct Application ID from the error message." -ForegroundColor Yellow
+        exit 1
+    }
+    
+    Write-Host "✅ Found service principal" -ForegroundColor Green
+    Write-Host "   Object ID: $($sp.Id)" -ForegroundColor Gray
+    Write-Host "   Display Name: $($sp.DisplayName)" -ForegroundColor Gray
+} catch {
+    Write-Host "❌ Error looking up service principal" -ForegroundColor Red
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    exit 1
+}
+
+Write-Host ""
+
 # Grant Managed Identity Operator role
 Write-Host "Granting 'Managed Identity Operator' role..." -ForegroundColor Cyan
-Write-Host "  To: Appliance Resource Provider ($ApplianceResourceProviderId)" -ForegroundColor Gray
+Write-Host "  To: $($sp.DisplayName)" -ForegroundColor Gray
 Write-Host "  On: $($identity.Name)" -ForegroundColor Gray
 Write-Host ""
 
 try {
     # Check if already assigned
     $existingRole = Get-AzRoleAssignment `
-        -ObjectId $ApplianceResourceProviderId `
+        -ObjectId $sp.Id `
         -RoleDefinitionName "Managed Identity Operator" `
         -Scope $identity.Id `
         -ErrorAction SilentlyContinue
@@ -67,7 +97,7 @@ try {
         Write-Host "✅ Role already assigned - no action needed" -ForegroundColor Green
     } else {
         New-AzRoleAssignment `
-            -ObjectId $ApplianceResourceProviderId `
+            -ObjectId $sp.Id `
             -RoleDefinitionName "Managed Identity Operator" `
             -Scope $identity.Id
         
@@ -78,6 +108,13 @@ try {
 } catch {
     Write-Host "❌ Failed to assign role" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
+    
+    if ($_.Exception.Message -like "*does not exist*") {
+        Write-Host ""
+        Write-Host "The service principal may not exist in your tenant yet." -ForegroundColor Yellow
+        Write-Host "This happens if the managed app hasn't been deployed before." -ForegroundColor Gray
+    }
+    
     exit 1
 }
 
