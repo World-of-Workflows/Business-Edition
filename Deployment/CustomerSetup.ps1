@@ -17,8 +17,17 @@ if (-not (Get-Module -ListAvailable -Name Az.Accounts)) {
 Import-Module Az.Accounts      -ErrorAction Stop
 Import-Module Az.Resources     -ErrorAction Stop
 
+if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
+    Write-Host "Microsoft.Graph module not found. Installing..." -ForegroundColor Yellow
+    Install-Module Microsoft.Graph -Scope CurrentUser -Repository PSGallery -Force
+}
+ Write-Host "Importing MS Graph - this can take a few minutes for the first time."
+Import-Module Microsoft.Graph -ErrorAction Stop
+ Write-Host "Done Importing MS Graph"
+
 # Ensure we are logged in
 try {
+
     $ctx = Get-AzContext
     if (-not $ctx) {
         Write-Host "You are not logged in. Calling Connect-AzAccount..." -ForegroundColor Yellow
@@ -30,7 +39,7 @@ catch {
     Write-Error "Failed to get Azure context or login: $($_.Exception.Message)"
     exit 1
 }
-
+ Write-Host "Setting up variables"
 # Derive values from logged-in context and site name
 $TenantId               = $ctx.Tenant.Id
 $AdminUserPrincipalName = $ctx.Account.Id
@@ -652,11 +661,11 @@ $PreauthApplication = @{
 Update-AzADApplication -ObjectId $ServerApp.Id -Api @{ PreAuthorizedApplication = @($PreauthApplication)}
 
 # =========================
-# 6. Assign Administrator Role to Admin User via Graph
+# 6. Assign Administrator Role to Admin User via Graph (Microsoft.Graph)
 # =========================
 
-Write-Host "Assigning Administrator app role to '$AdminUserPrincipalName'..." -ForegroundColor Cyan
-
+Write-Host "Assigning Administrator app role to '$AdminUserPrincipalName' via Microsoft Graph..." -ForegroundColor Cyan
+Read-Host "Press enter when ready."
 $domains = Get-AzDomain -TenantId $TenantId
 
 $AdminUser = Get-AzADUser -Filter "userPrincipalName eq '$AdminUserPrincipalName'"
@@ -664,24 +673,43 @@ if (-not $AdminUser) {
     throw "Could not find user with UPN '$AdminUserPrincipalName'"
 }
 
+# Connect to Graph (user will get a Graph login prompt)
+Connect-MgGraph -TenantId $TenantId -Scopes "AppRoleAssignment.ReadWrite.All","Directory.Read.All" | Out-Null
+
 $adminAppRoleId = $AdminGuid.Guid
-$token = (Get-AzAccessToken -ResourceUrl "https://graph.microsoft.com").Token
 
-$headers = @{
-    "Authorization" = "Bearer $token"
-    "Content-Type"  = "application/json"
+$maxAttempts = 5
+$attempt = 1
+$assigned = $false
+
+while (-not $assigned -and $attempt -le $maxAttempts) {
+    try {
+        Write-Host "Administrator app role #'$attempt' of '$maxAttempts'."
+
+        New-MgUserAppRoleAssignment -UserId $AdminUser.Id -BodyParameter @{
+            principalId = $AdminUser.Id
+            resourceId  = $ServerSp.Id
+            appRoleId   = $adminAppRoleId
+        }  -ErrorAction Stop | Out-Null
+
+        Write-Host "Administrator app role assigned to '$AdminUserPrincipalName'." -ForegroundColor Green
+        $assigned = $true
+    }
+    catch {
+        # Write-Warning "Attempt ${attempt}: Failed to assign Administrator role: $($_.Exception.Message)"
+        Write-Host "Will try again in 10 seconds to wait for Entra ID propagation ..." 
+        if ($attempt -lt $maxAttempts) {
+            Start-Sleep -Seconds 10
+        }
+        $attempt++
+    }
 }
-$assignmentBody = @{
-    principalId = $AdminUser.Id
-    resourceId  = $ServerSp.Id
-    appRoleId   = $adminAppRoleId
-} | ConvertTo-Json
 
-$assignUrl = "https://graph.microsoft.com/v1.0/users/$($AdminUser.Id)/appRoleAssignments"
-Invoke-RestMethod -Uri $assignUrl -Method Post -Headers $headers -Body $assignmentBody
-
-Write-Host ""
-Write-Host "Administrator app role assigned." -ForegroundColor Green
+if (-not $assigned) {
+    Write-Warning "Could not assign Administrator role automatically after $maxAttempts attempts."
+    Write-Host "Please assign the 'Administrator' role manually to '$AdminUserPrincipalName' " -ForegroundColor Yellow
+    Write-Host "in the '$( $ServerappName )' enterprise application in Entra ID." -ForegroundColor Yellow
+}
 
 # =========================
 # 7. Output JSON for Marketplace deployment
@@ -701,5 +729,13 @@ $result = [PSCustomObject]@{
 }
 
 Write-Host ""
+Write-Host "IMPORTANT: Server application client secret" -ForegroundColor Yellow
+Write-Host "Keep this value safe. You will NOT be able to retrieve it from Entra again.   " -ForegroundColor Yellow
+Write-Host "If you loose this, you can always create a new secret in $ServerappName.   " -ForegroundColor White
+Write-Host ""
+Write-Host ("  Server App Secret: {0}" -f $ServerSecret.SecretText) -ForegroundColor Cyan
+Write-Host ""
+Read-Host "Press enter once you have copied this secret"
+
 Write-Host "=== COPY THE JSON BELOW INTO THE MARKETPLACE DEPLOYMENT SCREEN ===" -ForegroundColor Cyan
 $result | ConvertTo-Json -Depth 5
