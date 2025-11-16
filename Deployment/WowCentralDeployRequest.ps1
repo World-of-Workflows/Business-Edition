@@ -43,6 +43,25 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# ----- Connect using the deployment script's managed identity -----
+Write-Host "Connecting to Azure with managed identity..."
+try {
+    # No parameters needed: deploymentScripts inject the correct identity
+    Connect-AzAccount -Identity -ErrorAction Stop
+
+    $ctx = Get-AzContext
+    if ($ctx) {
+        Write-Host ("Connected. Subscription: {0}  Tenant: {1}" -f `
+            $ctx.Subscription.Id, $ctx.Tenant.Id)
+    } else {
+        Write-Warning "Connect-AzAccount -Identity returned no context (unexpected)."
+    }
+}
+catch {
+    Write-Error "Failed to connect with managed identity: $($_.Exception.Message)"
+    throw
+}
+
 # Hard-coded WowCentral endpoint
 $WowCentralUrl = 'https://wowcentral.azurewebsites.net/deploymentRequest'
 
