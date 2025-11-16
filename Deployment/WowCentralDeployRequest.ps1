@@ -47,31 +47,9 @@ $ErrorActionPreference = 'Stop'
 $WowCentralUrl = 'https://wowcentral.azurewebsites.net/deploymentRequest'
 
 Write-Host "Connecting to Azure with managed identity..."
-
-# 1. Authenticate using the managed identity that the deploymentScript is running under
 Connect-AzAccount -Identity -ErrorAction Stop | Out-Null
-
-# 2. Inspect current context
 $ctx = Get-AzContext
-Write-Host ("Current Az context: Sub='{0}' Name='{1}' Tenant='{2}'" -f `
-    ($ctx.Subscription.Id  | ForEach-Object { $_ ?? '<none>' }),
-    ($ctx.Subscription.Name | ForEach-Object { $_ ?? '<none>' }),
-    ($ctx.Tenant.Id        | ForEach-Object { $_ ?? '<none>' }))
-
-# 3. Optional sanity check – do NOT call Set-AzContext here, just fail loudly if mismatch
-if (-not $ctx.Subscription -or [string]::IsNullOrWhiteSpace($ctx.Subscription.Id)) {
-    throw "Az context has no subscription. Expected SubscriptionId '$SubscriptionId' from ARM."
-}
-
-if ($ctx.Subscription.Id -ne $SubscriptionId) {
-    throw ("Az context subscription '{0}' does not match ARM parameter SubscriptionId '{1}'. " +
-           "This usually means the managed identity is logged into a different subscription.") `
-           -f $ctx.Subscription.Id, $SubscriptionId
-}
-
-$tenantId = $ctx.Tenant.Id
-Write-Host ("Current Az context: Sub='{0}' Name='{1}' Tenant='{2}'" -f `
-    $ctx.Subscription.Id, $ctx.Subscription.Name, $ctx.Tenant.Id)
+Write-Host ("Connected. Tenant: {0}" -f $ctx.Tenant.Id)
 
 Write-Host "=== Sending deployment context to WowCentral ==="
 Write-Host "Resource group:         $ResourceGroupName"
@@ -95,21 +73,49 @@ $sub = Get-AzSubscription -SubscriptionId $SubscriptionId -ErrorAction Stop
 $subscriptionName = $sub.Name
 Write-Host "Subscription Name:      $subscriptionName"
 
-Write-Host "Fetching publishing profile..."
-$xml = [xml](Get-AzWebAppPublishingProfile -ResourceGroupName $ResourceGroupName -Name $WebAppName -ErrorAction Stop)
+Write-Host "Fetching publishing profile via ARM REST API..."
 
-$kuduProfile = $xml.publishData.publishProfile |
-    Where-Object { $_.publishMethod -eq 'MSDeploy' }
+# Get an access token for ARM
+$armToken = (Get-AzAccessToken -ResourceUrl "https://management.azure.com/").Token
+
+# Build the publish XML endpoint URL
+$publishProfileUrl = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Web/sites/$WebAppName/publishxml?api-version=2023-01-01"
+
+$headers = @{
+    Authorization = "Bearer $armToken"
+    "Content-Type" = "application/json"
+}
+
+try {
+    # This returns XML as a string
+    $xmlString = Invoke-RestMethod -Uri $publishProfileUrl -Method POST -Headers $headers
+    Write-Host "Raw publish profile XML length: $($xmlString.Length)"
+}
+catch {
+    Write-Error "Failed to fetch publishing profile via ARM REST API: $($_.Exception.Message)"
+    throw
+}
+
+# Parse the XML
+try {
+    $xml = [xml]$xmlString
+}
+catch {
+    Write-Error "Failed to parse publishing profile XML: $($_.Exception.Message)"
+    throw
+}
+
+# Find the MSDeploy profile
+$kuduProfile = $xml.publishData.publishProfile | Where-Object { $_.publishMethod -eq 'MSDeploy' }
 
 if (-not $kuduProfile) {
-    throw "Could not find MSDeploy publishing profile for web app $WebAppName"
+    throw "Could not find MSDeploy publishing profile (MSDeploy) for web app $WebAppName"
 }
 
 $kuduUsername = $kuduProfile.userName
 $kuduPassword = $kuduProfile.userPWD
 
 Write-Host "Got Kudu username: $kuduUsername"
-
 # Build payload sent to WowCentral
 $payload = @{
     managedResourceGroup = $ManagedResourceGroup
