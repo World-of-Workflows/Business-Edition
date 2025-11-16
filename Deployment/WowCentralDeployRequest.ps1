@@ -69,9 +69,10 @@ Write-Host "Admin UPN:   $AdminUserPrincipalName"
 Write-Host "Business Edition Solution:   $BusinessEditionSolution"
 
 # Resolve subscription name (now that context is set correctly)
-$sub = Get-AzSubscription -SubscriptionId $SubscriptionId -ErrorAction Stop
-$subscriptionName = $sub.Name
-Write-Host "Subscription Name:      $subscriptionName"
+# Write-Host "Fetching Subscription Name..."
+# $sub = Get-AzSubscription -SubscriptionId $SubscriptionId -ErrorAction Stop
+# $subscriptionName = $sub.Name
+# Write-Host "Subscription Name:      $subscriptionName"
 
 Write-Host "Fetching publishing profile via ARM REST API..."
 
