@@ -58,9 +58,20 @@ Write-Host ("Initial Az context: Sub='{0}'  Tenant='{1}'" -f `
     ($ctx.Tenant.Id        | ForEach-Object { $_ ?? '<none>' }))
 
 # 3. Ensure we are on the subscription passed in from ARM
-if (-not $ctx.Subscription -or $ctx.Subscription.Id -ne $SubscriptionId) {
-    Write-Host "Setting Az context to subscription: $SubscriptionId"
-    Set-AzContext -Subscription $SubscriptionId -ErrorAction Stop | Out-Null
+if (-not $ctx.Subscription -or [string]::IsNullOrWhiteSpace($ctx.Subscription.Id)) {
+    Write-Host "Context has no subscription; setting context to SubscriptionId from parameters..."
+    if ([string]::IsNullOrWhiteSpace($SubscriptionId)) {
+        throw "SubscriptionId parameter is null or empty; cannot set Az context."
+    }
+
+    # IMPORTANT: use -SubscriptionId, not -Subscription, and don't pass Tenant
+    Set-AzContext -SubscriptionId $SubscriptionId -ErrorAction Stop | Out-Null
+    $ctx = Get-AzContext
+}
+elseif ($ctx.Subscription.Id -ne $SubscriptionId) {
+    Write-Host "Context subscription ($($ctx.Subscription.Id)) != parameter subscription ($SubscriptionId); switching..."
+
+    Set-AzContext -SubscriptionId $SubscriptionId -ErrorAction Stop | Out-Null
     $ctx = Get-AzContext
 }
 
