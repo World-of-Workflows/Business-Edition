@@ -77,7 +77,7 @@ Write-Host "Business Edition Solution:   $BusinessEditionSolution"
 Write-Host "Fetching publishing profile via ARM REST API..."
 
 # Get an access token for ARM
-$armToken = (Get-AzAccessToken -ResourceUrl "https://management.azure.com/").Token
+$armToken = (Get-AzAccessToken -ResourceUrl "https://management.core.windows.net/").Token
 
 # Build the publish XML endpoint URL
 $publishProfileUrl = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Web/sites/$WebAppName/publishxml?api-version=2023-01-01"
