@@ -62,10 +62,21 @@ Write-Host "Billing Email:          $BillingEmailForWoWLicence"
 Write-Host "Admin UPN:   $AdminUserPrincipalName"
 Write-Host "Business Edition Solution:   $BusinessEditionSolution"
 
-# Resolve subscription name
-$sub = Get-AzSubscription -SubscriptionId $SubscriptionId -ErrorAction Stop
-$subscriptionName = $sub.Name
-Write-Host "Subscription Name:      $subscriptionName"
+# Resolve subscription name (best-effort, no hard dependency)
+$subscriptionName = $SubscriptionId  # default/fallback
+
+try {
+    $ctx = Get-AzContext
+    if ($ctx -and $ctx.Subscription -and $ctx.Subscription.Id -eq $SubscriptionId) {
+        $subscriptionName = $ctx.Subscription.Name
+    }
+
+    Write-Host "Subscription Name:      $subscriptionName"
+}
+catch {
+    Write-Warning "Could not resolve subscription name from context: $($_.Exception.Message)"
+    Write-Host "Using subscription ID as name: $subscriptionName"
+}
 
 # Get Kudu publish profile for the web app
 Write-Host "Fetching publishing profile..."
