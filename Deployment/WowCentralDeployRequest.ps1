@@ -53,32 +53,23 @@ Connect-AzAccount -Identity -ErrorAction Stop | Out-Null
 
 # 2. Inspect current context
 $ctx = Get-AzContext
-Write-Host ("Initial Az context: Sub='{0}'  Tenant='{1}'" -f `
+Write-Host ("Current Az context: Sub='{0}' Name='{1}' Tenant='{2}'" -f `
     ($ctx.Subscription.Id  | ForEach-Object { $_ ?? '<none>' }),
+    ($ctx.Subscription.Name | ForEach-Object { $_ ?? '<none>' }),
     ($ctx.Tenant.Id        | ForEach-Object { $_ ?? '<none>' }))
 
-# 3. Ensure we are on the subscription passed in from ARM
+# 3. Optional sanity check – do NOT call Set-AzContext here, just fail loudly if mismatch
 if (-not $ctx.Subscription -or [string]::IsNullOrWhiteSpace($ctx.Subscription.Id)) {
-    Write-Host "Context has no subscription; setting context to SubscriptionId from parameters..."
-    if ([string]::IsNullOrWhiteSpace($SubscriptionId)) {
-        throw "SubscriptionId parameter is null or empty; cannot set Az context."
-    }
-
-    # IMPORTANT: use -SubscriptionId, not -Subscription, and don't pass Tenant
-    Set-AzContext -SubscriptionId $SubscriptionId -ErrorAction Stop | Out-Null
-    $ctx = Get-AzContext
+    throw "Az context has no subscription. Expected SubscriptionId '$SubscriptionId' from ARM."
 }
-elseif ($ctx.Subscription.Id -ne $SubscriptionId) {
-    Write-Host "Context subscription ($($ctx.Subscription.Id)) != parameter subscription ($SubscriptionId); switching..."
 
-    Set-AzContext -SubscriptionId $SubscriptionId -ErrorAction Stop | Out-Null
-    $ctx = Get-AzContext
+if ($ctx.Subscription.Id -ne $SubscriptionId) {
+    throw ("Az context subscription '{0}' does not match ARM parameter SubscriptionId '{1}'. " +
+           "This usually means the managed identity is logged into a different subscription.") `
+           -f $ctx.Subscription.Id, $SubscriptionId
 }
 
 $tenantId = $ctx.Tenant.Id
-Write-Host ("Current Az context: Sub='{0}' Name='{1}' Tenant='{2}'" -f `
-    $ctx.Subscription.Id, $ctx.Subscription.Name, $ctx.Tenant.Id)
-
 Write-Host ("Current Az context: Sub='{0}' Name='{1}' Tenant='{2}'" -f `
     $ctx.Subscription.Id, $ctx.Subscription.Name, $ctx.Tenant.Id)
 
