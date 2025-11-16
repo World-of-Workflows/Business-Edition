@@ -98,16 +98,42 @@ catch {
 }
 
 # Get Kudu publish profile for the web app
-Write-Host "Fetching publishing profile..."
-$xml = [xml](Get-AzWebAppPublishingProfile -ResourceGroupName $ResourceGroupName -Name $WebAppName)
+Write-Host "Fetching publishing profile via ARM REST API..."
 
-$kuduProfile = $xml.publishData.publishProfile | Where-Object { $_.publishMethod -eq 'MSDeploy' }
-if (-not $kuduProfile) {
-    throw "Could not find MSDeploy publishing profile for web app $WebAppName"
+# Get an access token for the ARM (management) endpoint
+$armToken = (Get-AzAccessToken -ResourceUrl "https://management.azure.com/").Token
+
+$headers = @{
+    Authorization = "Bearer $armToken"
+    "Content-Type" = "application/json"
 }
 
-$kuduUsername = $kuduProfile.userName
-$kuduPassword = $kuduProfile.userPWD
+# Use the same API family as your ARM template (Web/sites 2023-01-01 is fine here)
+$publishUrl = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Web/sites/$WebAppName/publishxml?api-version=2023-01-01"
+
+try {
+    # Publish profile endpoint expects POST and returns XML
+    $publishXmlString = Invoke-RestMethod -Uri $publishUrl -Headers $headers -Method POST -ErrorAction Stop
+
+    # Parse XML
+    [xml]$publishXml = $publishXmlString
+
+    $kuduProfile = $publishXml.publishData.publishProfile |
+        Where-Object { $_.publishMethod -eq 'MSDeploy' }
+
+    if (-not $kuduProfile) {
+        throw "Could not find MSDeploy publishing profile in publish XML for web app $WebAppName"
+    }
+
+    $kuduUsername = $kuduProfile.userName
+    $kuduPassword = $kuduProfile.userPWD
+
+    Write-Host "Got Kudu username: $kuduUsername"
+}
+catch {
+    Write-Error "Failed to fetch or parse publishing profile: $($_.Exception.Message)"
+    throw
+}
 
 Write-Host "Got Kudu username: $kuduUsername"
 
