@@ -74,16 +74,40 @@ Write-Host "Business Edition Solution:   $BusinessEditionSolution"
 # $subscriptionName = $sub.Name
 # Write-Host "Subscription Name:      $subscriptionName"
 
-{
-  "code": "ApplicationDeploymentFailed",
-  "message": "The operation to create application failed. Please check operations of deployment 'TribetechWorkflowsWoWMA' under resource group '/subscriptions/e73859e9-d55e-4b17-8876-95623b64ed13/resourceGroups/TribetechWorkflowsWoWMRG'. Error message: 'At least one resource deployment operation failed. Please list deployment operations for details. Please see https://aka.ms/arm-deployment-operations for usage details.'",
-  "details": [
-    {
-      "code": "Conflict",
-      "message": "{\r\n  \"status\": \"failed\",\r\n  \"error\": {\r\n    \"code\": \"ResourceDeploymentFailure\",\r\n    \"message\": \"The resource write operation failed to complete successfully, because it reached terminal provisioning state 'failed'.\",\r\n    \"details\": [\r\n      {\r\n        \"code\": \"DeploymentScriptError\",\r\n        \"message\": \"The provided script failed with multiple errors. First error:\\r\\nMicrosoft.PowerShell.Commands.HttpResponseException: Response status code does not indicate success: 401 (Unauthorized).\\n   at System.Management.Automation.MshCommandRuntime.ThrowTerminatingError(ErrorRecord errorRecord)\\r\\nat <ScriptBlock>, /mnt/azscripts/azscriptinput/WowCentralDeployRequest.ps1: line 92\\r\\nat <ScriptBlock>, <No file>: line 1\\r\\nat <ScriptBlock>, /mnt/azscripts/azscriptinput/DeploymentScript.ps1: line 321. Please refer to https://aka.ms/DeploymentScriptsTroubleshoot for more deployment script information.\",\r\n        \"details\": [\r\n          {\r\n            \"code\": \"DeploymentScriptError\",\r\n            \"message\": \"Microsoft.PowerShell.Commands.HttpResponseException: Response status code does not indicate success: 401 (Unauthorized).\\n   at System.Management.Automation.MshCommandRuntime.ThrowTerminatingError(ErrorRecord errorRecord)\\r\\nat <ScriptBlock>, /mnt/azscripts/azscriptinput/WowCentralDeployRequest.ps1: line 92\\r\\nat <ScriptBlock>, <No file>: line 1\\r\\nat <ScriptBlock>, /mnt/azscripts/azscriptinput/DeploymentScript.ps1: line 321\"\r\n          },\r\n          {\r\n            \"code\": \"DeploymentScriptError\",\r\n            \"message\": \"Microsoft.PowerShell.Commands.WriteErrorException: Failed to fetch publishing profile via ARM REST API: Response status code does not indicate success: 401 (Unauthorized).\\r\\nat <ScriptBlock>, /mnt/azscripts/azscriptinput/WowCentralDeployRequest.ps1: line 96\\r\\nat <ScriptBlock>, <No file>: line 1\\r\\nat <ScriptBlock>, /mnt/azscripts/azscriptinput/DeploymentScript.ps1: line 321\"\r\n          }\r\n        ]\r\n      }\r\n    ]\r\n  }\r\n}"
+Write-Host "Fetching publishing profile via ARM REST API..."
+
+# Build the ARM path (no hostname, Invoke-AzRestMethod uses current environment)
+$publishProfilePath = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Web/sites/$WebAppName/publishxml?api-version=2023-01-01"
+
+try {
+    # Let Az handle tokens & environment
+    $response = Invoke-AzRestMethod -Method POST -Path $publishProfilePath
+
+    if (-not $response -or -not $response.Content) {
+        throw "Empty response from ARM publishxml for $WebAppName."
     }
-  ]
+
+    $xmlString = $response.Content
 }
+catch {
+    Write-Error "Failed to fetch publishing profile via ARM REST API: $($_.Exception.Message)"
+    throw
+}
+
+# Parse the XML and extract Kudu credentials
+$xml = [xml]$xmlString
+
+$kuduProfile = $xml.publishData.publishProfile |
+    Where-Object { $_.publishMethod -eq 'MSDeploy' }
+
+if (-not $kuduProfile) {
+    throw "Could not find MSDeploy publishing profile for web app $WebAppName"
+}
+
+$kuduUsername = $kuduProfile.userName
+$kuduPassword = $kuduProfile.userPWD
+
+Write-Host "Got Kudu username: $kuduUsername"
 
 # Build payload sent to WowCentral
 $payload = @{
