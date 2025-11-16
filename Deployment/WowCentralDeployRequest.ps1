@@ -47,23 +47,26 @@ $ErrorActionPreference = 'Stop'
 $WowCentralUrl = 'https://wowcentral.azurewebsites.net/deploymentRequest'
 
 Write-Host "Connecting to Azure with managed identity..."
-$tenantId = $env:AZURE_TENANT_ID
 
-# 1. Authenticate with the user-assigned/system-assigned MI that the deploymentScript is running under
-Connect-AzAccount -Identity -Tenant $tenantId -ErrorAction Stop | Out-Null
+# 1. Authenticate using the managed identity that the deploymentScript is running under
+Connect-AzAccount -Identity -ErrorAction Stop | Out-Null
 
-# 2. Ensure we have a context for the *correct* subscription
+# 2. Inspect current context
 $ctx = Get-AzContext
-
 Write-Host ("Initial Az context: Sub='{0}'  Tenant='{1}'" -f `
     ($ctx.Subscription.Id  | ForEach-Object { $_ ?? '<none>' }),
     ($ctx.Tenant.Id        | ForEach-Object { $_ ?? '<none>' }))
 
+# 3. Ensure we are on the subscription passed in from ARM
 if (-not $ctx.Subscription -or $ctx.Subscription.Id -ne $SubscriptionId) {
     Write-Host "Setting Az context to subscription: $SubscriptionId"
-    Set-AzContext -Subscription $SubscriptionId -Tenant $tenantId -ErrorAction Stop | Out-Null
+    Set-AzContext -Subscription $SubscriptionId -ErrorAction Stop | Out-Null
     $ctx = Get-AzContext
 }
+
+$tenantId = $ctx.Tenant.Id
+Write-Host ("Current Az context: Sub='{0}' Name='{1}' Tenant='{2}'" -f `
+    $ctx.Subscription.Id, $ctx.Subscription.Name, $ctx.Tenant.Id)
 
 Write-Host ("Current Az context: Sub='{0}' Name='{1}' Tenant='{2}'" -f `
     $ctx.Subscription.Id, $ctx.Subscription.Name, $ctx.Tenant.Id)
