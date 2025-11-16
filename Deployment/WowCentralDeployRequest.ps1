@@ -26,7 +26,6 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$StorageAccountName,
 
-     # NEW
     [Parameter(Mandatory = $true)]
     [string]$CompanyNameForWoWLicence,
     
@@ -34,7 +33,10 @@ param(
     [string]$BillingEmailForWoWLicence,
 
     [Parameter(Mandatory = $false)]
-    [string]$AdminUserPrincipalName
+    [string]$AdminUserPrincipalName,
+
+    [Parameter(Mandatory = $false)]
+    [string]$BusinessEditionSolution
 
     
 )
