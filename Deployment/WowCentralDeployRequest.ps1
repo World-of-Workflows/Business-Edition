@@ -74,46 +74,12 @@ Write-Host "Business Edition Solution:   $BusinessEditionSolution"
 # $subscriptionName = $sub.Name
 # Write-Host "Subscription Name:      $subscriptionName"
 
-Write-Host "Fetching publishing profile via ARM REST API..."
-
-# Build the ARM path (no hostname, Invoke-AzRestMethod uses current environment)
-$publishProfilePath = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Web/sites/$WebAppName/publishxml?api-version=2023-01-01"
-
-try {
-    # Let Az handle tokens & environment
-    $response = Invoke-AzRestMethod -Method POST -Path $publishProfilePath
-
-    if (-not $response -or -not $response.Content) {
-        throw "Empty response from ARM publishxml for $WebAppName."
-    }
-
-    $xmlString = $response.Content
-}
-catch {
-    Write-Error "Failed to fetch publishing profile via ARM REST API: $($_.Exception.Message)"
-    throw
-}
-
-# Parse the XML and extract Kudu credentials
-$xml = [xml]$xmlString
-
-$kuduProfile = $xml.publishData.publishProfile |
-    Where-Object { $_.publishMethod -eq 'MSDeploy' }
-
-if (-not $kuduProfile) {
-    throw "Could not find MSDeploy publishing profile for web app $WebAppName"
-}
-
-$kuduUsername = $kuduProfile.userName
-$kuduPassword = $kuduProfile.userPWD
-
-Write-Host "Got Kudu username: $kuduUsername"
-
 # Build payload sent to WowCentral
 $payload = @{
     managedResourceGroup = $ManagedResourceGroup
     webAppName          = $WebAppName
     subscriptionId      = $SubscriptionId
+    tenantId            = $ctx.Tenant.Id
     subscriptionName    = $subscriptionName
     kuduUsername        = $kuduUsername
     kuduPassword        = $kuduPassword
