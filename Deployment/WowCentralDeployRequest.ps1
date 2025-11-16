@@ -108,32 +108,27 @@ $headers = @{
     "Content-Type" = "application/json"
 }
 
-# Use the same API family as your ARM template (Web/sites 2023-01-01 is fine here)
-$publishUrl = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Web/sites/$WebAppName/publishxml?api-version=2023-01-01"
+Write-Host "Fetching publishing profile..."
 
-try {
-    # Publish profile endpoint expects POST and returns XML
-    $publishXmlString = Invoke-RestMethod -Uri $publishUrl -Headers $headers -Method POST -ErrorAction Stop
+# Use the context ARM has already set for the deployment script
+$xmlString = Get-AzWebAppPublishingProfile `
+    -ResourceGroupName $ResourceGroupName `
+    -Name $WebAppName `
+    -Format "WebDeploy"
 
-    # Parse XML
-    [xml]$publishXml = $publishXmlString
+Write-Host $xmlString
 
-    $kuduProfile = $publishXml.publishData.publishProfile |
-        Where-Object { $_.publishMethod -eq 'MSDeploy' }
+$xml = [xml]$xmlString
 
-    if (-not $kuduProfile) {
-        throw "Could not find MSDeploy publishing profile in publish XML for web app $WebAppName"
-    }
+$kuduProfile = $xml.publishData.publishProfile |
+    Where-Object { $_.publishMethod -eq 'MSDeploy' }
 
-    $kuduUsername = $kuduProfile.userName
-    $kuduPassword = $kuduProfile.userPWD
-
-    Write-Host "Got Kudu username: $kuduUsername"
+if (-not $kuduProfile) {
+    throw "Could not find MSDeploy publishing profile for web app $WebAppName"
 }
-catch {
-    Write-Error "Failed to fetch or parse publishing profile: $($_.Exception.Message)"
-    throw
-}
+
+$kuduUsername = $kuduProfile.userName
+$kuduPassword = $kuduProfile.userPWD
 
 Write-Host "Got Kudu username: $kuduUsername"
 
